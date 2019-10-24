@@ -1,3 +1,4 @@
+export CUDA_VISIBLE_DEVICES=2
 k=5
 mkdir ../output/model_rcnn
 mkdir ../output/model_rcnn/fold_$k
