@@ -43,7 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('-seq-len', type=int, default=400, help='input seq len')
     parser.add_argument('-hidden_layers', type=int, default=1, help='rnn hidden layers')
     parser.add_argument('-directions', type=int, default=2, help='bidirection rnn')
-#     parser.add_argument('-input-size', type=int, default=768, help='input dimensiton')
+    parser.add_argument('-concat', type=int, default=None, required=True, help='title&content concat type')
     parser.add_argument('-linear-size', type=int, default=100, help='linear1 dimensiton')
     # device
     parser.add_argument('-server-ip', type=str, default=None, required=True, help='device ip for bert-as-service server')
@@ -79,7 +79,7 @@ if __name__ == '__main__':
             f.write('['+str(now)+']\n')
             f.write('*'*30+'\n')
         # get eval data&label
-        dev, dev_label = mydata.get_dev_examples(args.data_dir, args.batch_size, bc, args.dev_file)
+        dev, dev_label = mydata.get_dev_examples(args.data_dir, args.batch_size, bc, args.dev_file, args.concat)
         print('start training')  
         loss_func = nn.CrossEntropyLoss(weight=torch.from_numpy(np.array([1.19462648, 0.25, 0.310986013])).float(), size_average=True).to(device)
         optimizer = torch.optim.Adam(rcnn.parameters(), lr=args.lr)   
@@ -88,7 +88,7 @@ if __name__ == '__main__':
         
         for i in range(args.epoch):
             # get train data&label
-            train_, train_label = mydata.get_train_examples(args.data_dir, args.batch_size, bc, args.train_file)
+            train_, train_label = mydata.get_train_examples(args.data_dir, args.batch_size, bc, args.train_file, args.concat)
             # train
             train.train(rcnn, train=train_, train_label=train_label, loss_func=loss_func, optimizer=optimizer, epoch=i, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size)
             # eval

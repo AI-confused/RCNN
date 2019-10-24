@@ -44,24 +44,24 @@ class MyTaskProcessor(DataProcessor):
         return ['0', '1', '2']
     
 
-    def get_train_examples(self, data_dir, batch, bertclient, train_file, shuffle=1):
+    def get_train_examples(self, data_dir, batch, bertclient, train_file, concat, shuffle=1):
         lines = self._read_csv(data_dir, train_file)
         if shuffle:
             random.shuffle(lines)
             print('shuffle done')
-        return self._create_examples(lines, 'train', bertclient, batch)
+        return self._create_examples(lines, 'train', bertclient, batch, concat)
 
 
-    def get_dev_examples(self, data_dir, batch, bertclient, dev_file):
-        return self._create_examples(self._read_csv(data_dir, dev_file), 'dev', bertclient, batch)
+    def get_dev_examples(self, data_dir, batch, bertclient, dev_file, concat):
+        return self._create_examples(self._read_csv(data_dir, dev_file), 'dev', bertclient, batch, concat)
 
 
-    def get_test_examples(self, data_dir, batch, bertclient, test_file):
-        return self._create_examples(self._read_csv(data_dir, test_file), 'test', bertclient, batch)
+    def get_test_examples(self, data_dir, batch, bertclient, test_file, concat):
+        return self._create_examples(self._read_csv(data_dir, test_file), 'test', bertclient, batch, concat)
 
   
 
-    def _create_examples(self, lines, set_type, bertclient, batch):
+    def _create_examples(self, lines, set_type, bertclient, batch, concat):
         examples = []
         text_examples = []
         title_examples = []
@@ -78,10 +78,10 @@ class MyTaskProcessor(DataProcessor):
         for _ in range(0, max_len):
             data_title = bertclient.encode(title_examples[_*batch:(_+1)*batch]) 
             data_content = bertclient.encode(content_examples[_*batch:(_+1)*batch]) 
-            data = np.concatenate((data_title, data_content), 1) # batch * max_seq_len*2 * 768
-#             data = data_title
-#             print(data.shape)
-#             data = bertclient.encode(text_examples[_*batch:(_+1)*batch]) 
+            if concat == 1:
+                data = np.concatenate((data_title, data_content), 1) 
+            elif concat == 2:
+                data = np.concatenate((data_title, data_content), 2) 
             if set_type != 'test': 
                 label = labels[_*batch:(_+1)*batch] # list
                 batch_labels.append(label)
@@ -92,10 +92,10 @@ class MyTaskProcessor(DataProcessor):
         if len(lines) > max_len*batch:
             data_title = bertclient.encode(title_examples[max_len*batch:len(lines)]) 
             data_content = bertclient.encode(content_examples[max_len*batch:len(lines)]) 
-            data = np.concatenate((data_title, data_content), 1) # batch * max_seq_len*2 * 768
-#             data = data_title
-#             print(data.shape)
-#             data = bertclient.encode(text_examples[max_len*batch:len(lines)]) 
+            if concat == 1:
+                data = np.concatenate((data_title, data_content), 1) 
+            elif concat == 2:
+                data = np.concatenate((data_title, data_content), 2) 
             if set_type != 'test': 
                 label = labels[max_len*batch:len(lines)]
                 batch_labels.append(label)

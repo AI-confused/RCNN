@@ -11,7 +11,8 @@ python3 main.py \
 -seq-len=200 \
 -input-size=1536 \
 -do-train=1 \
--batch-size=256 \
+-concat=2 \
+-batch-size=512 \
 -port=8190 \
 -port-out=5556 \
 -model=../output/model_rcnn1/fold_$k/model_$i.pkl \
