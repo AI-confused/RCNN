@@ -40,12 +40,12 @@ def train(model, **kargs):
     model.train()
     accu_loss = 0
     for _ in range(len(kargs['train'])):   
-        output = model(x=Variable(torch.FloatTensor(kargs['train'][_])).to(kargs['device']), h0=Variable(torch.zeros((2, int(len(kargs['train'][_])/4), kargs['hidden_size']))).to(kargs['device']), seq_len=100, input_size=768, hidden_size=100, linear_size=100)# batch * 3
+        output = model(x=Variable(torch.FloatTensor(kargs['train'][_])).to(kargs['device']), h0=Variable(torch.zeros((2, len(kargs['train'][_]), kargs['hidden_size']))).to(kargs['device']), seq_len=100, input_size=768, hidden_size=100, linear_size=100)# batch * 3
         label = np.array(kargs['train_label'][_])
         label = Variable(torch.LongTensor(label)).to(kargs['device'])
         loss = kargs['loss_func'](output, label)
-        if kargs['n_gpu'] > 1:
-            loss = loss.mean() # average on multi-gpu
+#         if kargs['n_gpu'] > 1:
+#             loss = loss.mean() # average on multi-gpu
         accu_loss += loss.item()
 
         kargs['optimizer'].zero_grad()

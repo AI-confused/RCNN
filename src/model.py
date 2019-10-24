@@ -43,7 +43,6 @@ class RCNN_Text(nn.Module):
         print(output.shape)
         output = self.drop_out(output)
         logit = self.linear2(output)
-        print('logit:')
         print(logit.shape)
         
         return logit

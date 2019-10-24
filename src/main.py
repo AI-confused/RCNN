@@ -24,8 +24,9 @@ if __name__ == '__main__':
     # learning
     parser.add_argument('-lr', type=float, default=1e-3, help='initial learning rate [default: 0.001]')
     parser.add_argument('-epoch', type=int, default=20, help='number of epochs for train [default: 20]')
-    parser.add_argument('-per-gpu-train-batch-size', type=int, default=2, help='per gpu batch size for training [default: 2]')
-    parser.add_argument('-per-gpu-eval-batch-size', type=int, default=32, help='per gpu batch size for eval [default: 32]')
+#     parser.add_argument('-per-gpu-train-batch-size', type=int, default=2, help='per gpu batch size for training [default: 2]')
+#     parser.add_argument('-per-gpu-eval-batch-size', type=int, default=32, help='per gpu batch size for eval [default: 32]')
+    parser.add_argument('-batch-size', type=int, default=32, help='batch size for train [default: 32]')
     parser.add_argument('-save', type=int, default=1, help='whether to save model')
     parser.add_argument('-model', type=str, default=None, required=True, help='dir to store model')
     parser.add_argument('-predict-file', type=str, default=None, required=True, help='dir to store predict')
@@ -59,16 +60,16 @@ if __name__ == '__main__':
     mydata = data.MyTaskProcessor()
     # set-up cuda,gpu
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    args.n_gpu = torch.cuda.device_count() 
-    args.device = device
+#     args.n_gpu = torch.cuda.device_count() 
+#     args.device = device
     # update args
     args.class_num = len(mydata.get_labels()) # 3
     # define text rcnn model 
-    rcnn = model.RCNN_Text(args.input_size, args.hidden_size, args.class_num, args.seq_len*(args.input_size+2*args.hidden_size), args.linear_size, args.linear_size, args.dropout).to(device) #need to modify
-    if args.n_gpu > 1:
-        rcnn = nn.DataParallel(rcnn)
-    args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
-    args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
+    rcnn = model.RCNN_Text(args.input_size, args.hidden_size, args.class_num, args.input_size+2*args.hidden_size, args.linear_size, args.linear_size, args.dropout).to(device) #need to modify
+#     if args.n_gpu > 1:s
+#         rcnn = nn.DataParallel(rcnn)
+#     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
+#     args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
     print('model define done')
     # training
     if args.do_train:
@@ -78,21 +79,20 @@ if __name__ == '__main__':
             f.write('['+str(now)+']\n')
             f.write('*'*30+'\n')
         # get eval data&label
-        dev, dev_label = mydata.get_dev_examples(args.data_dir, args.n_gpu*args.per_gpu_eval_batch_size, bc, args.dev_file)
+        dev, dev_label = mydata.get_dev_examples(args.data_dir, args.batch_size, bc, args.dev_file)
         print('start training')  
         loss_func = nn.CrossEntropyLoss(weight=torch.from_numpy(np.array([1.19462648, 0.25, 0.310986013])).float(), size_average=True)
-        loss_func.to(device)
         optimizer = torch.optim.Adam(rcnn.parameters(), lr=args.lr)   
         max_f1 = 0
         middle_f1 = 0
         
         for i in range(args.epoch):
             # get train data&label
-            train_, train_label = mydata.get_train_examples(args.data_dir, args.n_gpu*args.per_gpu_train_batch_size, bc, args.train_file)
+            train_, train_label = mydata.get_train_examples(args.data_dir, args.batch_size, bc, args.train_file)
             # train
-            train.train(rcnn, train=train_, train_label=train_label, loss_func=loss_func, optimizer=optimizer, n_gpu=args.n_gpu, epoch=i, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size)
+            train.train(rcnn, train=train_, train_label=train_label, loss_func=loss_func, optimizer=optimizer, epoch=i, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size)
             # eval
-            macro_f1 = train.eval(rcnn, dev, dev_label, args.batch, i, device, args.class_num, args.eval_result)
+            macro_f1 = train.eval(rcnn, dev, dev_label, args.batch_size, i, device, args.class_num, args.eval_result)
             
             if not args.static_epoch:
                 if macro_f1 >= max_f1:
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     if args.do_predict:
         rcnn.load_state_dict(torch.load(args.load_model))
         print('model load done')
-        test = mydata.get_test_examples(args.data_dir, args.batch, bc, args.test_file)
+        test = mydata.get_test_examples(args.data_dir, args.batch_batch, bc, args.test_file)
         print('test data done')
         train.predict(rcnn, test, device, args.predict_file)
         print('predict saved')
