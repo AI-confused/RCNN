@@ -40,7 +40,7 @@ if __name__ == '__main__':
     parser.add_argument('-dropout', type=float, default=0.5, help='the probability for dropout [default: 0.5]')
     parser.add_argument('-input-size', type=int, default=768, help='input dimensiton')
     parser.add_argument('-hidden-size', type=int, default=100, help='rnn hidden layer size')
-    parser.add_argument('-seq-len', type=int, default=100, help='input seq len')
+    parser.add_argument('-seq-len', type=int, default=400, help='input seq len')
     parser.add_argument('-hidden_layers', type=int, default=1, help='rnn hidden layers')
     parser.add_argument('-directions', type=int, default=2, help='bidirection rnn')
 #     parser.add_argument('-input-size', type=int, default=768, help='input dimensiton')
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     # update args
     args.class_num = len(mydata.get_labels()) # 3
     # define text rcnn model 
-    rcnn = model.RCNN_Text(args.input_size, args.hidden_size, args.class_num, args.input_size+2*args.hidden_size, args.linear_size, args.linear_size, args.dropout).to(device) #need to modify
+    rcnn = model.RCNN_Text(args.input_size, args.hidden_size, args.class_num, args.input_size+2*args.hidden_size, args.linear_size, args.dropout).to(device) #need to modify
 #     if args.n_gpu > 1:s
 #         rcnn = nn.DataParallel(rcnn)
 #     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
@@ -81,7 +81,7 @@ if __name__ == '__main__':
         # get eval data&label
         dev, dev_label = mydata.get_dev_examples(args.data_dir, args.batch_size, bc, args.dev_file)
         print('start training')  
-        loss_func = nn.CrossEntropyLoss(weight=torch.from_numpy(np.array([1.19462648, 0.25, 0.310986013])).float(), size_average=True)
+        loss_func = nn.CrossEntropyLoss(weight=torch.from_numpy(np.array([1.19462648, 0.25, 0.310986013])).float(), size_average=True).to(device)
         optimizer = torch.optim.Adam(rcnn.parameters(), lr=args.lr)   
         max_f1 = 0
         middle_f1 = 0
@@ -90,9 +90,9 @@ if __name__ == '__main__':
             # get train data&label
             train_, train_label = mydata.get_train_examples(args.data_dir, args.batch_size, bc, args.train_file)
             # train
-            train.train(rcnn, train=train_, train_label=train_label, loss_func=loss_func, optimizer=optimizer, epoch=i, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size)
+            train.train(rcnn, train=train_, train_label=train_label, loss_func=loss_func, optimizer=optimizer, epoch=i, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len)
             # eval
-            macro_f1 = train.eval(rcnn, dev, dev_label, args.batch_size, i, device, args.class_num, args.eval_result)
+            macro_f1 = train.eval(rcnn, dev=dev, dev_label=dev_label, batch_size=args.batch_size, epoch=i, device=device, num_label=args.class_num, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len)
             
             if not args.static_epoch:
                 if macro_f1 >= max_f1:

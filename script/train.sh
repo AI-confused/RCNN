@@ -1,3 +1,4 @@
+export CUDA_VISIBLE_DEVICES=2
 k=5
 mkdir ../output/model_rcnn
 mkdir ../output/model_rcnn/fold_$k
@@ -6,8 +7,10 @@ for((i=0;i<k;i++));
 do   
 python3 main.py \
 -server-ip='10.15.82.239' \
--predict=1 \
--training=1 \
+-do-predict=0 \
+-seq-len=400 \
+-do-train=1 \
+-batch-size=256 \
 -port=8190 \
 -port-out=5556 \
 -model=../output/model_rcnn/fold_$k/model_$i.pkl \

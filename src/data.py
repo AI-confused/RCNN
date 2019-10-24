@@ -78,9 +78,9 @@ class MyTaskProcessor(DataProcessor):
         for _ in range(0, max_len):
             data_title = bertclient.encode(title_examples[_*batch:(_+1)*batch]) 
             data_content = bertclient.encode(content_examples[_*batch:(_+1)*batch]) 
-#             data = np.concatenate((data_title, data_content), 2) # batch * max_seq_len*2 * 768
-            data = data_title
-            print(data.shape)
+            data = np.concatenate((data_title, data_content), 1) # batch * max_seq_len*2 * 768
+#             data = data_title
+#             print(data.shape)
 #             data = bertclient.encode(text_examples[_*batch:(_+1)*batch]) 
             if set_type != 'test': 
                 label = labels[_*batch:(_+1)*batch] # list
@@ -92,9 +92,9 @@ class MyTaskProcessor(DataProcessor):
         if len(lines) > max_len*batch:
             data_title = bertclient.encode(title_examples[max_len*batch:len(lines)]) 
             data_content = bertclient.encode(content_examples[max_len*batch:len(lines)]) 
-#             data = np.concatenate((data_title, data_content), 1) # batch * max_seq_len*2 * 768
-            data = data_title
-            print(data.shape)
+            data = np.concatenate((data_title, data_content), 1) # batch * max_seq_len*2 * 768
+#             data = data_title
+#             print(data.shape)
 #             data = bertclient.encode(text_examples[max_len*batch:len(lines)]) 
             if set_type != 'test': 
                 label = labels[max_len*batch:len(lines)]
