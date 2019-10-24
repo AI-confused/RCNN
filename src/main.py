@@ -90,9 +90,9 @@ if __name__ == '__main__':
             # get train data&label
             train_, train_label = mydata.get_train_examples(args.data_dir, args.batch_size, bc, args.train_file)
             # train
-            train.train(rcnn, train=train_, train_label=train_label, loss_func=loss_func, optimizer=optimizer, epoch=i, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len)
+            train.train(rcnn, train=train_, train_label=train_label, loss_func=loss_func, optimizer=optimizer, epoch=i, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size)
             # eval
-            macro_f1 = train.eval(rcnn, dev=dev, dev_label=dev_label, batch_size=args.batch_size, epoch=i, device=device, num_label=args.class_num, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len)
+            macro_f1 = train.eval(rcnn, dev=dev, dev_label=dev_label, batch_size=args.batch_size, epoch=i, device=device, num_label=args.class_num, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size)
             
             if not args.static_epoch:
                 if macro_f1 >= max_f1:
