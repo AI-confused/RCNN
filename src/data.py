@@ -44,11 +44,8 @@ class MyTaskProcessor(DataProcessor):
         return ['0', '1', '2']
     
 
-    def get_train_examples(self, data_dir, batch, bertclient, train_file, concat, shuffle=1):
+    def get_train_examples(self, data_dir, batch, bertclient, train_file, concat):
         lines = self._read_csv(data_dir, train_file)
-        if shuffle:
-            random.shuffle(lines)
-            print('shuffle done')
         return self._create_examples(lines, 'train', bertclient, batch, concat)
 
 

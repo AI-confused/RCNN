@@ -6,7 +6,6 @@ from bert_serving.client import BertClient
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
-import logging
 from tqdm import tqdm, trange
 from torch.autograd import Variable
 import torch.nn as nn
@@ -24,6 +23,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='RCNN text classificer')
     # learning
     parser.add_argument('-lr', type=float, default=1e-3, help='initial learning rate [default: 0.001]')
+    parser.add_argument('-epoch', type=int, default=20, help='number of epochs for train [default: 20]')
 #     parser.add_argument('-per-gpu-train-batch-size', type=int, default=2, help='per gpu batch size for training [default: 2]')
 #     parser.add_argument('-per-gpu-eval-batch-size', type=int, default=32, help='per gpu batch size for eval [default: 32]')
     parser.add_argument('-batch-size', type=int, default=32, help='batch size for train [default: 32]')
@@ -45,10 +45,10 @@ if __name__ == '__main__':
     parser.add_argument('-directions', type=int, default=2, help='bidirection rnn')
     parser.add_argument('-concat', type=int, default=None, required=True, help='title&content concat type')
     parser.add_argument('-linear-size', type=int, default=100, help='linear1 dimensiton')
-    parser.add_argument('-train-steps', type=int, default=100, help='train steps, one step for one batch')
     # device
     parser.add_argument('-server-ip', type=str, default=None, required=True, help='device ip for bert-as-service server')
     parser.add_argument('-do-predict', type=int, default=0, help='predict the sentence given')
+    parser.add_argument('-static-epoch', type=int, default=0, help='static epoch num or dynamic epoch num')
     parser.add_argument('-do-train', type=int, default=1, help='train or test')
     parser.add_argument('-load-model', type=str, default=None, required=True, help='predict loading model dir')
     parser.add_argument('-port', type=int, default=5555, help='bert-as-service port')
@@ -58,79 +58,61 @@ if __name__ == '__main__':
     # connect to bert-serving-server
     bc = BertClient(ip=args.server_ip,port=args.port, port_out=args.port_out, check_version=False, check_length=False)
     mydata = data.MyTaskProcessor()
-    logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                    datefmt = '%m/%d/%Y %H:%M:%S',
-                    level = logging.INFO)
-    logger = logging.getLogger(__name__)
     # set-up cuda,gpu
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+#     args.n_gpu = torch.cuda.device_count() 
+#     args.device = device
     # update args
     args.class_num = len(mydata.get_labels()) # 3
-    
     # define text rcnn model 
     rcnn = model.RCNN_Text(args.input_size, args.hidden_size, args.class_num, args.input_size+2*args.hidden_size, args.linear_size, args.dropout).to(device) #need to modify
-    
+#     if args.n_gpu > 1:s
+#         rcnn = nn.DataParallel(rcnn)
+#     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
+#     args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
+    print('model define done')
     # training
     if args.do_train:
-        
         # open eval_result.txt   
         with open(args.eval_result, 'w') as f:
             now = datetime.datetime.now()
             f.write('['+str(now)+']\n')
-            f.write('*'*80+'\n')
-            
+            f.write('*'*30+'\n')
         # get eval data&label
         dev, dev_label = mydata.get_dev_examples(args.data_dir, args.batch_size, bc, args.dev_file, args.concat)
-        train_, train_label = mydata.get_train_examples(args.data_dir, args.batch_size, bc, args.train_file, args.concat)
-        print('='*80)
-        logger.info("*** Start Training ***")
-        logger.info("  Num examples = %d", (len(train_)-1)*args.batch_size+len(train_[-1]))
-        logger.info("  Batch size = %d", len(train_))
-        logger.info("  Num steps = %d", args.train_steps)
-        
-        # set tqdm bar
-        num_train_optimization_steps = args.train_steps
-        bar = tqdm(range(num_train_optimization_steps),total=num_train_optimization_steps)
-        
-        # loss_func define
+        print('start training')  
         loss_func = nn.CrossEntropyLoss(weight=torch.from_numpy(np.array([1.19462648, 0.25, 0.310986013])).float(), size_average=True).to(device)
         optimizer = torch.optim.Adam(rcnn.parameters(), lr=args.lr)   
         max_f1 = 0
-
-        # train progress
-        for i, step in enumerate(bar):
-            # get batch data
-            batch_train = train_[int(i%len(train_))]
-            batch_label = train_label[int(i%len(train_label))]
+        middle_f1 = 0
+        
+        for i in range(args.epoch):
+            # get train data&label
+            train_, train_label = mydata.get_train_examples(args.data_dir, args.batch_size, bc, args.train_file, args.concat)
             # train
-            train_loss = train.train(rcnn, train=batch_train, train_label=batch_label, loss_func=loss_func, optimizer=optimizer, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size, step=i)
-            bar.set_description("loss {}".format(train_loss))
-            
+            train.train(rcnn, train=train_, train_label=train_label, loss_func=loss_func, optimizer=optimizer, epoch=i, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size)
             # eval
-            macro_f1 = train.eval(rcnn, dev=dev, dev_label=dev_label, batch_size=args.batch_size, epoch=i, device=device, num_label=args.class_num, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size, step=i)
+            macro_f1 = train.eval(rcnn, dev=dev, dev_label=dev_label, batch_size=args.batch_size, epoch=i, device=device, num_label=args.class_num, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size)
             
-            if macro_f1 >= max_f1:
-                print("Best F1", macro_f1)
-                print("Saving Model......")
-                max_f1=macro_f1
-                # Save a trained model
-                if args.save == 1:
-                    torch.save(rcnn.state_dict(), args.model) #保存网络参数
-                    print("="*80)
-            else:
-                print("="*80)
-        logger.info("  Max Macro_f1 = %f", max_f1)
-        print('='*80)
-        with open(args.eval_result, 'a') as f:
-            now = datetime.datetime.now()
-            f.write('['+str(now)+'] max_macro_f1:' + str(max_f1))
+            if not args.static_epoch:
+                if macro_f1 >= max_f1:
+                    max_f1 = macro_f1
+                elif macro_f1 >= middle_f1 and macro_f1 < max_f1:
+                    middle_f1 = macro_f1
+                else: 
+                    break
+        print('max macro f1:' + str(max_f1))
+
+
+        if args.save == 1:
+            torch.save(rcnn.state_dict(), args.model) #保存网络参数
+            print('model saved')
             
     # predicting
     if args.do_predict:
         rcnn.load_state_dict(torch.load(args.load_model))
         print('model load done')
-        test = mydata.get_test_examples(args.data_dir, args.batch_batch, bc, args.test_file, args.concat)
+        test = mydata.get_test_examples(args.data_dir, args.batch_batch, bc, args.test_file)
         print('test data done')
         train.predict(rcnn, test, device, args.predict_file)
         print('predict saved')

@@ -10,6 +10,8 @@ python3 main.py \
 -do-predict=0 \
 -seq-len=400 \
 -input-size=768 \
+-hidden-size=768 \
+-liner-size=100 \
 -concat=1 \
 -do-train=1 \
 -batch-size=512 \

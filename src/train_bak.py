@@ -8,12 +8,6 @@ import datetime
 from torch.autograd import Variable
 import numpy as np
 import csv
-import logging
-
-logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                    datefmt = '%m/%d/%Y %H:%M:%S',
-                    level = logging.INFO)
-logger = logging.getLogger(__name__)
 
 class ConfMatrix(object):
     def __init__(self, num_label):
@@ -44,17 +38,23 @@ class ConfMatrix(object):
 
 def train(model, **kargs):
     model.train()
-    output = model(x=Variable(torch.FloatTensor(kargs['train'])).to(kargs['device']), h0=Variable(torch.zeros((2, len(kargs['train']), kargs['hidden_size']))).to(kargs['device']), seq_len=kargs['seq_len'], input_size=kargs['input_size'], hidden_size=kargs['hidden_size'], linear_size=kargs['linear_size'])# batch * 3
-    label = np.array(kargs['train_label']) 
-    label = Variable(torch.LongTensor(label)).to(kargs['device'])
-    loss = kargs['loss_func'](output, label)
-    kargs['optimizer'].zero_grad()
-    loss.backward()
-    kargs['optimizer'].step()
+    accu_loss = 0
+    for _ in range(len(kargs['train'])):   
+        output = model(x=Variable(torch.FloatTensor(kargs['train'][_])).to(kargs['device']), h0=Variable(torch.zeros((2, len(kargs['train'][_]), kargs['hidden_size']))).to(kargs['device']), seq_len=kargs['seq_len'], input_size=kargs['input_size'], hidden_size=kargs['hidden_size'], linear_size=kargs['linear_size'])# batch * 3
+        label = np.array(kargs['train_label'][_]) 
+        label = Variable(torch.LongTensor(label)).to(kargs['device'])
+        loss = kargs['loss_func'](output, label)
+#         if kargs['n_gpu'] > 1:
+#             loss = loss.mean() # average on multi-gpu
+        accu_loss += loss.item()
+
+        kargs['optimizer'].zero_grad()
+        loss.backward()
+        kargs['optimizer'].step()
     now = datetime.datetime.now()
     with open(kargs['eval_result'], 'a') as f:
-        f.write('['+str(now)+']:step '+str(kargs['step'])+' loss: '+str(loss.item())+'\n')
-    return loss.item()
+        f.write('['+str(now)+']:epoch '+str(kargs['epoch'])+' loss: '+str(accu_loss/len(kargs['train']))+'\n')
+    print('['+str(now)+']:epoch '+str(kargs['epoch'])+' loss: '+str(accu_loss/len(kargs['train'])))
 
 
 def eval(model, **kargs):
@@ -75,14 +75,9 @@ def eval(model, **kargs):
     macro_f1 = confmatrix.get_average_macro_f1(macro_f1_list)
     now = datetime.datetime.now()
     with open(kargs['eval_result'], 'a') as f:
-        f.write('['+str(now)+']:step '+str(kargs['step'])+': accuracy: '+str(accuracy) + '| macro f1: ' + str(macro_f1)+'\n')
-        f.write('*'*80+'\n')
-    logger.info("*** Eval Result ***")
-    logger.info("  Num examples = %d", kargs['batch_size']*(len(kargs['dev'])-1)+len(kargs['dev'][-1]))
-    logger.info("  Batch size = %d", len(kargs['dev']))
-    logger.info("  Step = %d", kargs['step'])
-    logger.info("  Accuracy = %f", accuracy)
-    logger.info("  Macro_f1 = %f", macro_f1)
+        f.write('['+str(now)+']:epoch '+str(kargs['epoch'])+': accuracy: '+str(accuracy) + '| macro f1: ' + str(macro_f1)+'\n')
+        f.write('*'*30+'\n')
+    print('['+str(now)+']:epoch '+str(kargs['epoch'])+': accuracy: '+str(accuracy) + '| macro f1: ' + str(macro_f1))
     return macro_f1
 
 def write_csv(content, csv_file):
@@ -94,9 +89,7 @@ def write_csv(content, csv_file):
     
 def predict(model, test, device, file):
     model.eval()
-    with open(file, 'w') as f:
-        writer = csv.writer(f)
-        writer.writerow(['label_0', 'label_1', 'label_2'])
+    write_csv(['label_0', 'label_1', 'label_2'], file)
     for _ in range(len(test)):
         output = model.forward(Variable(torch.FloatTensor(test[_])).to(device)).detach()
         output = output.cpu().numpy().tolist()

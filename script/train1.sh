@@ -3,15 +3,17 @@ k=5
 mkdir ../output/model_rcnn1
 mkdir ../output/model_rcnn1/fold_$k
 cd ../src
-for((i=0;i<k;i++));  
+for((i=2;i<k;i++));  
 do   
 python3 main.py \
 -server-ip='10.15.82.239' \
 -do-predict=0 \
--seq-len=200 \
--input-size=1536 \
+-seq-len=400 \
+-input-size=768 \
+-hidden-size=300 \
+-linear-size=100 \
 -do-train=1 \
--concat=2 \
+-concat=1 \
 -batch-size=512 \
 -port=8190 \
 -port-out=5556 \
