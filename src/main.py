@@ -46,6 +46,7 @@ if __name__ == '__main__':
     parser.add_argument('-concat', type=int, default=None, required=True, help='title&content concat type')
     parser.add_argument('-linear-size', type=int, default=100, help='linear1 dimensiton')
     parser.add_argument('-train-steps', type=int, default=100, help='train steps, one step for one batch')
+    parser.add_argument('-model-type', type=str, default='rnn', help='recurrent network model type')
     # device
     parser.add_argument('-server-ip', type=str, default=None, required=True, help='device ip for bert-as-service server')
     parser.add_argument('-do-predict', type=int, default=0, help='predict the sentence given')
@@ -69,7 +70,7 @@ if __name__ == '__main__':
     args.class_num = len(mydata.get_labels()) # 3
     
     # define text rcnn model 
-    rcnn = model.RCNN_Text(args.input_size, args.hidden_size, args.class_num, args.input_size+2*args.hidden_size, args.linear_size, args.dropout).to(device) #need to modify
+    rcnn = model.RCNN_Text(args.input_size, args.hidden_size, args.class_num, args.input_size+2*args.hidden_size, args.linear_size, args.dropout, args.model_type).to(device) #need to modify
     
     # training
     if args.do_train:
@@ -104,11 +105,11 @@ if __name__ == '__main__':
             batch_train = train_[int(i%len(train_))]
             batch_label = train_label[int(i%len(train_label))]
             # train
-            train_loss = train.train(rcnn, train=batch_train, train_label=batch_label, loss_func=loss_func, optimizer=optimizer, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size, step=i)
+            train_loss = train.train(rcnn, train=batch_train, train_label=batch_label, loss_func=loss_func, optimizer=optimizer, device=device, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size, step=i, model_type=args.model_type)
             bar.set_description("loss {}".format(train_loss))
             
             # eval
-            macro_f1 = train.eval(rcnn, dev=dev, dev_label=dev_label, batch_size=args.batch_size, device=device, num_label=args.class_num, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size, step=i)
+            macro_f1 = train.eval(rcnn, dev=dev, dev_label=dev_label, batch_size=args.batch_size, device=device, num_label=args.class_num, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size, step=i, model_type=args.model_type)
             
             if macro_f1 >= max_f1:
                 print("Best F1", macro_f1)
@@ -132,7 +133,7 @@ if __name__ == '__main__':
         print('model load done')
         test = mydata.get_test_examples(args.data_dir, args.batch_size, bc, args.test_file, args.concat)
         print('test data done')
-        train.predict(rcnn, test=test, device=device, file=args.predict_file, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size)
+        train.predict(rcnn, test=test, device=device, file=args.predict_file, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size, model_type=args.model_type)
         print('predict saved')
         print('='*80)
     bc.close()    

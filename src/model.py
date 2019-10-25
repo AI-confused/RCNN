@@ -8,7 +8,7 @@ import numpy as np
 
 class RCNN_Text(nn.Module):
     
-    def __init__(self, input_size, hidden_size, num_classes, linear_size1, linear_size2, dropout):
+    def __init__(self, input_size, hidden_size, num_classes, linear_size1, linear_size2, dropout, model_type):
         super(RCNN_Text, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -17,14 +17,25 @@ class RCNN_Text(nn.Module):
         self.linear_size2 = linear_size2
         self.dropout = dropout
         
-        self.birnn = nn.RNN(self.input_size, self.hidden_size, bias=False, batch_first=True, bidirectional=True)
+        if model_type=='lstm':
+            self.birnn = nn.LSTM(self.input_size, self.hidden_size, bias=False, batch_first=True, bidirectional=True)
+#             print('lstm')
+        elif model_type=='gru':
+            self.birnn = nn.GRU(self.input_size, self.hidden_size, bias=False, batch_first=True, bidirectional=True)
+#             print('gru')
+        else:
+            self.birnn = nn.RNN(self.input_size, self.hidden_size, bias=False, batch_first=True, bidirectional=True)
+#             print('rnn')
         self.linear1 = nn.Linear(self.linear_size1, self.linear_size2)
         self.linear2 = nn.Linear(self.linear_size2, num_classes)
         self.drop_out = nn.Dropout(self.dropout)
 
 
     def forward(self, **kargs):
-        output, hn = self.birnn(kargs['x'], kargs['h0']) # output:batch*seq_len*(hidden*2)   hn:2*batch*768
+        if kargs['model_type']=='lstm':
+            output, hn = self.birnn(kargs['x'], (kargs['h0'], kargs['h0']))
+        else:
+            output, hn = self.birnn(kargs['x'], kargs['h0']) # output:batch*seq_len*(hidden*2)   hn:2*batch*768
 #         print(output.shape, hn.shape)
         output = torch.cat((output, kargs['x']), 2) # batch*seq_len*(5*768)
 #         print(output.shape)

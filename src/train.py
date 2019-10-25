@@ -44,7 +44,7 @@ class ConfMatrix(object):
 
 def train(model, **kargs):
     model.train()
-    output = model(x=Variable(torch.FloatTensor(kargs['train'])).to(kargs['device']), h0=Variable(torch.zeros((2, len(kargs['train']), kargs['hidden_size']))).to(kargs['device']), seq_len=kargs['seq_len'], input_size=kargs['input_size'], hidden_size=kargs['hidden_size'], linear_size=kargs['linear_size'])# batch * 3
+    output = model(x=Variable(torch.FloatTensor(kargs['train'])).to(kargs['device']), h0=Variable(torch.zeros((2, len(kargs['train']), kargs['hidden_size']))).to(kargs['device']), seq_len=kargs['seq_len'], input_size=kargs['input_size'], hidden_size=kargs['hidden_size'], linear_size=kargs['linear_size'], model_type=kargs['model_type'])# batch * 3
     label = np.array(kargs['train_label']) 
     label = Variable(torch.LongTensor(label)).to(kargs['device'])
     loss = kargs['loss_func'](output, label)
@@ -62,7 +62,7 @@ def eval(model, **kargs):
     right_count = 0
     confmatrix = ConfMatrix(kargs['num_label'])
     for _ in range(len(kargs['dev'])):
-        output = model.forward(x=Variable(torch.FloatTensor(kargs['dev'][_])).to(kargs['device']), h0=Variable(torch.zeros((2, len(kargs['dev'][_]), kargs['hidden_size']))).to(kargs['device']), seq_len=kargs['seq_len'], input_size=kargs['input_size'], hidden_size=kargs['hidden_size'], linear_size=kargs['linear_size'])
+        output = model.forward(x=Variable(torch.FloatTensor(kargs['dev'][_])).to(kargs['device']), h0=Variable(torch.zeros((2, len(kargs['dev'][_]), kargs['hidden_size']))).to(kargs['device']), seq_len=kargs['seq_len'], input_size=kargs['input_size'], hidden_size=kargs['hidden_size'], linear_size=kargs['linear_size'], model_type=kargs['model_type'])
         output = output.max(1)[1]
         for y, label in enumerate(kargs['dev_label'][_]):
             if output.cpu().numpy()[y] == label:
@@ -98,7 +98,7 @@ def predict(model, **kargs):
         writer = csv.writer(f)
         writer.writerow(['label_0', 'label_1', 'label_2'])
     for _ in range(len(kargs['test'])):
-        output = model.forward(x=Variable(torch.FloatTensor(kargs['test'][_])).to(kargs['device']), h0=Variable(torch.zeros((2, len(kargs['test'][_]), kargs['hidden_size']))).to(kargs['device']), seq_len=kargs['seq_len'], input_size=kargs['input_size'], hidden_size=kargs['hidden_size'], linear_size=kargs['linear_size']).detach()
+        output = model.forward(x=Variable(torch.FloatTensor(kargs['test'][_])).to(kargs['device']), h0=Variable(torch.zeros((2, len(kargs['test'][_]), kargs['hidden_size']))).to(kargs['device']), seq_len=kargs['seq_len'], input_size=kargs['input_size'], hidden_size=kargs['hidden_size'], linear_size=kargs['linear_size'], model_type=kargs['model_type']).detach()
         output = output.cpu().numpy().tolist()
         for item in output:
             write_csv(item, kargs['file'])

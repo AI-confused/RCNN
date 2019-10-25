@@ -1,9 +1,9 @@
 export CUDA_VISIBLE_DEVICES=3
 k=5
-mkdir ../output/model_rcnn1
-mkdir ../output/model_rcnn1/fold_$k
+mkdir ../output/model_rcnn2
+mkdir ../output/model_rcnn2/fold_$k
 cd ../src
-for((i=1;i<k;i++));  
+for((i=0;i<k;i++));  
 do   
 python3 main.py \
 -server-ip='10.15.82.239' \
@@ -15,15 +15,16 @@ python3 main.py \
 -do-train=1 \
 -train-steps=100 \
 -concat=1 \
+-model-type='gru' \
 -batch-size=256 \
 -port=8190 \
 -port-out=5556 \
--model=../output/model_rcnn1/fold_$k/model_$i.pkl \
+-model=../output/model_rcnn2/fold_$k/model_$i.pkl \
 -train-file=fold_$k/data_$i/train.csv \
 -dev-file=fold_$k/data_$i/dev.csv \
 -test-file=fold_$k/data_$i/test.csv \
--predict-file=../output/model_rcnn1/fold_$k/test_result_$i.csv \
--load-model=../output/model_rcnn1/fold_$k/model_$i.pkl \
--eval-result=../output/model_rcnn1/fold_$k/eval_result_$i.txt
+-predict-file=../output/model_rcnn2/fold_$k/test_result_$i.csv \
+-load-model=../output/model_rcnn2/fold_$k/model_$i.pkl \
+-eval-result=../output/model_rcnn2/fold_$k/eval_result_$i.txt
 
 done
