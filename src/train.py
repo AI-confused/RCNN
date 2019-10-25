@@ -92,14 +92,14 @@ def write_csv(content, csv_file):
     
     
     
-def predict(model, test, device, file):
+def predict(model, **kargs):
     model.eval()
-    with open(file, 'w') as f:
+    with open(kargs['file'], 'w') as f:
         writer = csv.writer(f)
         writer.writerow(['label_0', 'label_1', 'label_2'])
-    for _ in range(len(test)):
-        output = model.forward(Variable(torch.FloatTensor(test[_])).to(device)).detach()
+    for _ in range(len(kargs['test'])):
+        output = model.forward(x=Variable(torch.FloatTensor(kargs['test'][_])).to(kargs['device']), h0=Variable(torch.zeros((2, len(kargs['test'][_]), kargs['hidden_size']))).to(kargs['device']), seq_len=kargs['seq_len'], input_size=kargs['input_size'], hidden_size=kargs['hidden_size'], linear_size=kargs['linear_size']).detach()
         output = output.cpu().numpy().tolist()
         for item in output:
-            write_csv(item, file)
+            write_csv(item, kargs['file'])
 

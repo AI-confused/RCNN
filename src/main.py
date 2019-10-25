@@ -108,7 +108,7 @@ if __name__ == '__main__':
             bar.set_description("loss {}".format(train_loss))
             
             # eval
-            macro_f1 = train.eval(rcnn, dev=dev, dev_label=dev_label, batch_size=args.batch_size, epoch=i, device=device, num_label=args.class_num, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size, step=i)
+            macro_f1 = train.eval(rcnn, dev=dev, dev_label=dev_label, batch_size=args.batch_size, device=device, num_label=args.class_num, eval_result=args.eval_result, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size, step=i)
             
             if macro_f1 >= max_f1:
                 print("Best F1", macro_f1)
@@ -130,8 +130,9 @@ if __name__ == '__main__':
     if args.do_predict:
         rcnn.load_state_dict(torch.load(args.load_model))
         print('model load done')
-        test = mydata.get_test_examples(args.data_dir, args.batch_batch, bc, args.test_file, args.concat)
+        test = mydata.get_test_examples(args.data_dir, args.batch_size, bc, args.test_file, args.concat)
         print('test data done')
-        train.predict(rcnn, test, device, args.predict_file)
+        train.predict(rcnn, test=test, device=device, file=args.predict_file, hidden_size=args.hidden_size, seq_len=args.seq_len, input_size=args.input_size, linear_size=args.linear_size)
         print('predict saved')
+        print('='*80)
     bc.close()    
