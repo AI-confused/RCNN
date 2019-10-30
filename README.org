@@ -5,7 +5,7 @@
     2) https://github.com/hanxiao/bert-as-service 使用bert-as-service
     3) 需要一台能运行bert-as-service的服务器，最好有GPU，然后 pip install bert-serving-server
 *** Experiments
-**** bert生成的词向量接入text-cnn网络
+**** bert生成的词向量接入text-rcnn网络
      1) [X] bert-as-service(roberta wwm), title&content encode 为200的seq_len, 再纵向拼接为batch*400*768的输入向量
       | input_size | hidden_size | linear_size | seq_len |   lr | batch_size |                    5 fold macro_f1 | test_macro_f1 |
       |------------+-------------+-------------+---------+------+------------+------------------------------------+---------------|
