@@ -70,6 +70,7 @@ if __name__ == '__main__':
     args.class_num = len(mydata.get_labels()) # 3
     
     # define text rcnn model 
+    print('lr: '+str(args.lr))
     rcnn = model.RCNN_Text(args.input_size, args.hidden_size, args.class_num, args.input_size+2*args.hidden_size, args.linear_size, args.dropout, args.model_type).to(device) #need to modify
     
     # training

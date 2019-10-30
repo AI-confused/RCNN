@@ -19,13 +19,13 @@ class RCNN_Text(nn.Module):
         
         if model_type=='lstm':
             self.birnn = nn.LSTM(self.input_size, self.hidden_size, bias=False, batch_first=True, bidirectional=True)
-#             print('lstm')
+            print('Recurrent Model : lstm')
         elif model_type=='gru':
             self.birnn = nn.GRU(self.input_size, self.hidden_size, bias=False, batch_first=True, bidirectional=True)
-#             print('gru')
+            print('Recurrent Model : gru')
         else:
             self.birnn = nn.RNN(self.input_size, self.hidden_size, bias=False, batch_first=True, bidirectional=True)
-#             print('rnn')
+            print('Recurrent Model : rnn')
         self.linear1 = nn.Linear(self.linear_size1, self.linear_size2)
         self.linear2 = nn.Linear(self.linear_size2, num_classes)
         self.drop_out = nn.Dropout(self.dropout)
