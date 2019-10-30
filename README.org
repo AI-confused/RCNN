@@ -1,0 +1,43 @@
+** RCNN for text sentiment classification
+*** Requirements
+    1) pip install -r requirements.txt
+    2) https://github.com/hanxiao/bert-as-service 使用bert-as-service
+    3) 需要一台能运行bert-as-service的服务器，最好有GPU，然后 pip install bert-serving-server
+*** Experiments
+**** bert生成的词向量接入text-cnn网络
+     1) [X] bert-as-service(roberta wwm), title&content encode 为200的seq_len, 再纵向拼接为batch*400*768的输入向量
+      | input_size | hidden_size | linear_size | seq_len |   lr | batch_size |                    5 fold macro_f1 | test_macro_f1 |
+      |------------+-------------+-------------+---------+------+------------+------------------------------------+---------------|
+      |       1536 |         100 |         100 |     200 | 1e-3 |        512 |                          0.77-0.78 |               |
+      |        768 |         100 |         100 |   200*2 | 1e-3 |        512 |                          0.77-0.78 |               |
+      |            |         300 |         100 |     400 |      |            |                          0.76-0.78 |               |
+      |            |         768 |         100 |     400 |      |        256 | 0.7890/0.7921/0.7726/0.7789/0.7508 |               |
+      |       1536 |         768 |         100 |     200 |      |            | 0.7901/0.7913/0.7705/0.7953/0.7573 |        0.7833 |
+     2) [X] 替换RNN为GRU&LSTM
+      | model | input_size | hidden_size | linear_size | seq_len |   lr | bat-size | 5 fold macro_f1                    | name        |   test |
+      |-------+------------+-------------+-------------+---------+------+----------+------------------------------------+-------------+--------|
+      | GRU   |        768 |         768 |         100 | 400     | 1e-3 |      256 | 0.7898/0.7951/0.7799/0.7923/0.7507 |             | 0.7896 |
+      |       |            |         300 |         100 | /       |      |          | 0.7879/0.7888/0.7735/0.7776/0.7566 | 10-26/rcnn0 |        |
+      |       |            |         768 |         300 | /       |      |          | 0.7925/0.7929/0.7762/0.7892/0.7537 | 10-26/rcnn1 |        |
+      |       |            |         768 |         300 |         | 1e-4 |      128 | 0.7807/0.7807/0.7599/0.7784/0.7449 | 10-26/rcnn2 |        |
+      |       |            |             |         768 |         | 1e-4 |       64 | 0.7871/0.8022/0.7800/0.7794/0.7701 | 10-26/rcnn3 |        |
+      |-------+------------+-------------+-------------+---------+------+----------+------------------------------------+-------------+--------|
+      | LSTM  |            |             |             |         |      |          | 0.7922/0.7943/0.7721/0.7892/0.7671 |             |        |
+      SCHEDULE <2019-10-25 Fri> 融合4个模型后提交结果：0.7922
+      SCHEDELE <2019-10-27 Sun> 融合4个模型后提交结果：0.7888
+*** Usage-textcnn
+**** 服务器启动bert-as-service
+     1) https://github.com/hanxiao/bert-as-service bert-as-service
+     2) bert-serving-start -model_dir ‘your pretrained model dir’ -num_worker=4 -max_seq_len=200 -pooling_strategy=NONE -port=8190
+**** 清洗数据
+     1) cd scr/
+     2) python3 clean.py
+**** n折交叉训练
+     1) cd src/
+     2) python3 split_data.py (default k=5)
+**** train
+     1) cd script/
+     2) bash train.sh
+**** 模型融合
+     1) cd src/
+     2) python get_result.py -k=5 -output=../output/final.csv -model='your defined model_output dir'
